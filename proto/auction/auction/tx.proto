@@ -2,6 +2,7 @@ syntax = "proto3";
 package auction.auction;
 
 import "amino/amino.proto";
+import "cosmos/base/v1beta1/coin.proto";
 import "cosmos/msg/v1/msg.proto";
 import "cosmos_proto/cosmos.proto";
 import "gogoproto/gogo.proto";
@@ -16,6 +17,12 @@ service Msg {
   // UpdateParams defines a (governance) operation for updating the module
   // parameters. The authority defaults to the x/gov module account.
   rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+
+  // CreateAuction allows users to create an auction.
+  rpc CreateAuction(MsgCreateAuction) returns (MsgCreateAuctionResponse);
+
+  // PlaceBid allows users to submit a bid.
+  rpc PlaceBid(MsgPlaceBid) returns (MsgPlaceBidResponse);
 }
 
 // MsgUpdateParams is the Msg/UpdateParams request type.
@@ -38,3 +45,40 @@ message MsgUpdateParams {
 // MsgUpdateParamsResponse defines the response structure for executing a
 // MsgUpdateParams message.
 message MsgUpdateParamsResponse {}
+
+message MsgCreateAuction {
+  option (cosmos.msg.v1.signer) = "creator";
+  string creator = 1;
+  string item = 2;
+  cosmos.base.v1beta1.Coin starting_bid = 3;
+}
+
+message MsgCreateAuctionResponse {
+  string auction_id = 1;
+}
+
+message MsgPlaceBid {
+  option (cosmos.msg.v1.signer) = "bidder";
+  string auction_id = 1;
+  string bidder = 2;
+  cosmos.base.v1beta1.Coin bid_amount = 3;
+}
+
+message MsgPlaceBidResponse {
+  bool success = 1;
+}
+
+// TODO:
+message Auction {
+  string creator = 1;
+  string item = 2;
+  cosmos.base.v1beta1.Coin starting_bid = 3;
+  string id = 4;
+  repeated Bid bids = 5;
+}
+
+// TODO:
+message Bid {
+  string bidder = 1;
+  cosmos.base.v1beta1.Coin bid_amount = 2;
+}
