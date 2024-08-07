@@ -48,6 +48,8 @@ func initRootCmd(
 		queryCommand(),
 		txCommand(),
 		keys.Commands(),
+		CmdCreateAuction(),
+		CmdPlaceBid(),
 	)
 }
 

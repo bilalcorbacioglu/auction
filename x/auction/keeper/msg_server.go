@@ -3,7 +3,6 @@ package keeper
 import (
 	"auction/x/auction/types"
 	"context"
-	"fmt"
 
 	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -21,11 +20,8 @@ func NewMsgServerImpl(keeper Keeper) types.MsgServer {
 	return &msgServer{Keeper: keeper}
 }
 
-// var _ types.MsgServer = msgServer{}
-
 // CreateAuction handles the creation of an auction.
 func (m msgServer) CreateAuction(goCtx context.Context, msg *types.MsgCreateAuction) (*types.MsgCreateAuctionResponse, error) {
-	fmt.Println("CreateAuction fonksiyonuna girildi")
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	auctionID, err := m.Keeper.AppendAuction(ctx, msg)
 	if err != nil {
