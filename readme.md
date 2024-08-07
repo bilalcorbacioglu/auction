@@ -1,4 +1,4 @@
-# auction
+# Auction
 **auction** is a blockchain built using Cosmos SDK and Tendermint and created with [Ignite CLI](https://ignite.com/cli).
 
 ## Get started
@@ -9,43 +9,81 @@ ignite chain serve
 
 `serve` command installs dependencies, builds, initializes, and starts your blockchain in development.
 
-### Configure
+## Overview
 
-Your blockchain in development can be configured with `config.yml`. To learn more, see the [Ignite CLI docs](https://docs.ignite.com).
+The Auction module allows users to create auctions and place bids. When bids are placed, the highest bidder's funds are stored in a storage account, and the previous highest bid is refunded. The highest bid in each auction is logged every 100 blocks.
 
-### Web Frontend
+## Example Scenario
 
-Additionally, Ignite CLI offers both Vue and React options for frontend scaffolding:
+Let's consider a scenario with three users: Bob, Alice, and Joe.
 
-For a Vue frontend, use: `ignite scaffold vue`
-For a React frontend, use: `ignite scaffold react`
-These commands can be run within your scaffolded blockchain project. 
+### Creating an Auction
 
+1. Bob creates an auction for an item.
 
-For more information see the [monorepo for Ignite front-end development](https://github.com/ignite/web).
-
-## Release
-To release a new version of your blockchain, create and push a new tag with `v` prefix. A new draft release with the configured targets will be created.
-
-```
-git tag v0.1
-git push origin v0.1
+```sh
+auctiond create-auction "Vintage Car" "10token" --from bob --chain-id auction --fees 10token -y
 ```
 
-After a draft release is created, make your final changes from the release page and publish it.
+### Placing Bids
 
-### Install
-To install the latest version of your blockchain node's binary, execute the following command on your machine:
+2. Alice places a bid on Bob's auction.
 
+```sh
+auctiond place-bid "auction-0" "15token" --from alice --chain-id auction --fees 10token -y
 ```
-curl https://get.ignite.com/username/auction@latest! | sudo bash
+
+3. Joe places a higher bid on the same auction.
+
+```sh
+auctiond place-bid "auction-0" "20token" --from joe --chain-id auction --fees 10token -y
 ```
-`username/auction` should match the `username` and `repo_name` of the Github repository to which the source code was pushed. Learn more about [the install process](https://github.com/allinbits/starport-installer).
 
-## Learn more
+### Fund Handling
 
-- [Ignite CLI](https://ignite.com/cli)
-- [Tutorials](https://docs.ignite.com/guide)
-- [Ignite CLI docs](https://docs.ignite.com)
-- [Cosmos SDK docs](https://docs.cosmos.network)
-- [Developer Chat](https://discord.gg/ignite)
+- When Alice places her bid, her `15token` is sent to the storage account.
+- When Joe places a higher bid, Alice's `15token` is refunded to her, and Joe's `20token` is sent to the storage account.
+
+### Checking Logs
+
+The highest bid in each auction is logged every 100 blocks. This can be checked in the logs.
+
+### Checking Transaction Events
+
+To verify the details of a specific transaction, including events such as bids placed or auctions created, you can use the following command:
+
+```sh
+auctiond query tx TX_ID
+```
+
+Replace TX_ID with the transaction hash you want to inspect. This command will provide detailed information about the transaction, including the events that were triggered, the involved addresses, and the status of the transaction.
+
+## Logging the Maximum Bid
+
+The maximum bid in each auction is logged every 100 blocks in `EndBlocker`.
+
+```go
+func (k Keeper) EndBlocker(ctx sdk.Context) {
+    if ctx.BlockHeight()%100 == 0 {
+        k.Logger().Info("Checking maximum bids for auctions")
+        // Implementation as described
+        // ...
+        // ...
+    }
+}
+```
+
+## Viewing Logs
+
+To view the logs, start the node and check the logs for the auction module:
+
+```sh
+auctiond start
+```
+
+Look for log entries related to auction and bid events.
+
+## Further Steps
+
+- **In-memory Storage**: The current implementation uses in-memory storage, which means that all auction information is lost when Ignite is restarted. To avoid this, a database connection can be used to store auction data persistently.
+- **Module Account**: Currently, a base account is used as the storage account, which may not be ideal. Instead, a module account can be used, allowing the bank module to interact more securely and appropriately.
