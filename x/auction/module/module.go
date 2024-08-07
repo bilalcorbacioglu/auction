@@ -199,11 +199,15 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 	if in.Config.Authority != "" {
 		authority = authtypes.NewModuleAddressOrBech32Address(in.Config.Authority)
 	}
+	storageAddress := sdk.MustAccAddressFromBech32("cosmos1nt2864p8390qm6tctx33e3zt8gh6aehpqv089g")
 	k := keeper.NewKeeper(
 		in.Cdc,
 		in.StoreService,
 		in.Logger,
 		authority.String(),
+		in.BankKeeper,
+		in.AccountKeeper,
+		storageAddress,
 	)
 	m := NewAppModule(
 		in.Cdc,

@@ -19,13 +19,15 @@ import (
 
 type (
 	Keeper struct {
-		cdc          codec.BinaryCodec
-		storeService store.KVStoreService
-		logger       log.Logger
-
+		cdc           codec.BinaryCodec
+		storeService  store.KVStoreService
+		logger        log.Logger
+		bankKeeper    types.BankKeeper
+		accountKeeper types.AccountKeeper
 		// the address capable of executing a MsgUpdateParams message. Typically, this
 		// should be the x/gov module account.
-		authority string
+		authority      string
+		storageAddress sdk.AccAddress
 	}
 )
 
@@ -34,17 +36,22 @@ func NewKeeper(
 	storeService store.KVStoreService,
 	logger log.Logger,
 	authority string,
-
+	bankKeeper types.BankKeeper,
+	accountKeeper types.AccountKeeper,
+	storageAddress sdk.AccAddress,
 ) Keeper {
 	if _, err := sdk.AccAddressFromBech32(authority); err != nil {
 		panic(fmt.Sprintf("invalid authority address: %s", authority))
 	}
 
 	return Keeper{
-		cdc:          cdc,
-		storeService: storeService,
-		authority:    authority,
-		logger:       logger,
+		cdc:            cdc,
+		storeService:   storeService,
+		authority:      authority,
+		logger:         logger,
+		bankKeeper:     bankKeeper,
+		accountKeeper:  accountKeeper,
+		storageAddress: storageAddress,
 	}
 }
 
@@ -134,6 +141,12 @@ func (k Keeper) AppendBid(ctx sdk.Context, auctionID string, bidder string, bidA
 	var auction types.Auction
 	k.cdc.MustUnmarshal(auctionBytes, &auction)
 
+	// Check if there's a previous highest bid
+	var previousHighestBid *types.Bid
+	if len(auction.Bids) > 0 {
+		previousHighestBid = auction.Bids[len(auction.Bids)-1]
+	}
+
 	// Append the bid to the auction
 	bid := &types.Bid{
 		Bidder:    bidder,
@@ -144,6 +157,22 @@ func (k Keeper) AppendBid(ctx sdk.Context, auctionID string, bidder string, bidA
 	// Save the updated auction to the store
 	auctionBytes = k.cdc.MustMarshal(&auction)
 	store.Set([]byte(auctionID), auctionBytes)
+
+	// Send coins from bidder to storage account
+	bidderAddress, _ := sdk.AccAddressFromBech32(bidder)
+	err := k.bankKeeper.SendCoins(ctx, bidderAddress, k.storageAddress, sdk.NewCoins(bidAmount))
+	if err != nil {
+		return nil, err
+	}
+
+	// Refund the previous highest bidder if there was one
+	if previousHighestBid != nil {
+		previousHighestBidderAddress, _ := sdk.AccAddressFromBech32(previousHighestBid.Bidder)
+		err = k.bankKeeper.SendCoins(ctx, k.storageAddress, previousHighestBidderAddress, sdk.NewCoins(*previousHighestBid.BidAmount))
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// Broadcast an event
 	bidsString := ""

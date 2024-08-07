@@ -9,9 +9,13 @@ accounts:
   coins:
   - 10000token
   - 100000000stake
-client:
-  openapi:
-    path: docs/static/openapi.yml
+- name: joe
+  coins:
+  - 10000token
+- name: storage
+  address: cosmos1nt2864p8390qm6tctx33e3zt8gh6aehpqv089g
+  coins:
+  - "10token"
 faucet:
   name: bob
   coins:

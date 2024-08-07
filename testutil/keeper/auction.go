@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"context"
 	"testing"
 
 	"cosmossdk.io/log"
@@ -21,6 +22,30 @@ import (
 	"auction/x/auction/types"
 )
 
+type MockBankKeeper struct{}
+
+func (m MockBankKeeper) SpendableCoins(ctx context.Context, addr sdk.AccAddress) sdk.Coins {
+	return sdk.Coins{}
+}
+
+func (m MockBankKeeper) SendCoins(ctx context.Context, fromAddr, toAddr sdk.AccAddress, amt sdk.Coins) error {
+	return nil
+}
+
+func (m MockBankKeeper) SendCoinsFromAccountToModule(ctx context.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error {
+	return nil
+}
+
+func (m MockBankKeeper) SendCoinsFromModuleToAccount(ctx context.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error {
+	return nil
+}
+
+type MockAccountKeeper struct{}
+
+func (m MockAccountKeeper) GetAccount(context.Context, sdk.AccAddress) sdk.AccountI {
+	return authtypes.NewBaseAccount(sdk.AccAddress{}, nil, 0, 0)
+}
+
 func AuctionKeeper(t testing.TB) (keeper.Keeper, sdk.Context) {
 	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
 
@@ -33,11 +58,18 @@ func AuctionKeeper(t testing.TB) (keeper.Keeper, sdk.Context) {
 	cdc := codec.NewProtoCodec(registry)
 	authority := authtypes.NewModuleAddress(govtypes.ModuleName)
 
+	bankKeeper := MockBankKeeper{}
+	accountKeeper := MockAccountKeeper{}
+	storageAddress := sdk.MustAccAddressFromBech32("cosmos1nt2864p8390qm6tctx33e3zt8gh6aehpqv089g")
+
 	k := keeper.NewKeeper(
 		cdc,
 		runtime.NewKVStoreService(storeKey),
 		log.NewNopLogger(),
 		authority.String(),
+		bankKeeper,
+		accountKeeper,
+		storageAddress,
 	)
 
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
